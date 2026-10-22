@@ -52,4 +52,7 @@ covarFile$mat_asthma        <- factor(covarFile$mat_asthma,
 covarFile$batch_Microarray  <- factor(covarFile$batch_Microarray)
 covarFile$vitD_status <- ifelse(covarFile$mat_vitD < 20, "Low", "Adequate")
 covarFile$vitD_status <- factor(covarFile$vitD_status, levels = c("Low", "Adequate"))
+
+
+
 ```
