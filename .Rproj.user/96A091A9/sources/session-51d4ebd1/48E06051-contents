@@ -1,0 +1,57 @@
+---
+title: "HSE_103Project"
+output: html_document
+date: "2026-10-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#load library
+library(tidyverse)
+#load files
+covarFile <- read.csv("/Users/kwaku/Downloads/GSE85307_covar-1.csv")
+ExpressionFile <-  read.csv("/Users/kwaku/Downloads/GSE85307_geneExpression.csv")
+GeneNames <- read.csv("/Users/kwaku/Downloads/GSE85307_geneNames.csv")
+
+#check dimensions of each file
+dim(covarFile)
+dim(ExpressionFile)
+dim(GeneNames)
+
+#Clean the Data loaded (CovarFile) with a for loop
+cols_to_clean <- c("mat_age_yrs", "preg_preeclampsia", "delivery_gestAge_wks",
+                   "sampleCollection_gestAge_wks", "batch_Microarray",
+                   "mat_BMI", "mat_vitD", "mat_asthma")
+
+for (col in cols_to_clean) {
+  covarFile[[col]] <- sub("^.*: ", "", covarFile[[col]])
+}
+
+```
+
+```{r}
+#Convert Continuous Variables from text to numeric
+ToNumeric <- c("mat_age_yrs", "delivery_gestAge_wks",
+                   "sampleCollection_gestAge_wks",
+                   "mat_BMI", "mat_vitD")
+
+for (col in ToNumeric) {
+  covarFile[[col]] <- as.numeric(covarFile[[col]])
+}
+
+# Convert Categorical variables to factors
+covarFile$preg_preeclampsia <- factor(covarFile$preg_preeclampsia,
+                                  levels = c("Normal", "Preeclampsia"))
+covarFile$mat_asthma        <- factor(covarFile$mat_asthma,
+                                  levels = c("0", "1"),
+                                  labels = c("No asthma", "Asthma"))
+covarFile$batch_Microarray  <- factor(covarFile$batch_Microarray)
+covarFile$vitD_status <- ifelse(covarFile$mat_vitD < 20, "Low", "Adequate")
+covarFile$vitD_status <- factor(covarFile$vitD_status, levels = c("Low", "Adequate"))
+
+
+```
