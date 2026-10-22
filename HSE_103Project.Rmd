@@ -14,7 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 #load files
 covarFile <- read.csv("/Users/kwaku/Downloads/GSE85307_covar-1.csv")
-ExpressionFile <-  read.csv("/Users/kwaku/Downloads/GSE85307_geneExpression.csv")
+ExpressionFile <-  read.csv("/Users/kwaku/Downloads/GSE85307_geneExpression.csv",
+                            row.names = 1,check.names = FALSE)
 GeneNames <- read.csv("/Users/kwaku/Downloads/GSE85307_geneNames.csv")
 
 #check dimensions of each file
@@ -43,6 +44,9 @@ for (col in ToNumeric) {
   covarFile[[col]] <- as.numeric(covarFile[[col]])
 }
 
+# Check for missing values after conversion
+colSums(is.na(covarFile[ToNumeric]))
+
 # Convert Categorical variables to factors
 covarFile$preg_preeclampsia <- factor(covarFile$preg_preeclampsia,
                                   levels = c("Normal", "Preeclampsia"))
@@ -54,5 +58,46 @@ covarFile$vitD_status <- ifelse(covarFile$mat_vitD < 20, "Low", "Adequate")
 covarFile$vitD_status <- factor(covarFile$vitD_status, levels = c("Low", "Adequate"))
 
 
+
+
+```
+
+```{r}
+#Get the gene of interest
+my_gene  <- "RRAGD"
+
+# Use the linker file to find the probe ID for this gene
+my_probe <- as.character(GeneNames$PROBEID[GeneNames$GENE == my_gene])
+my_probe
+
+# Pull that probe's row out of the expression data
+gene_df <- data.frame(
+  geoID      = colnames(ExpressionFile),
+  expression = as.numeric(unlist(ExpressionFile[my_probe, ]))
+)
+
+# Check the result
+head(gene_df)
+nrow(gene_df)
+```
+```{r}
+#Combine gene and covariates
+# Check that every sample in covar is in the expression data
+all(covarFile$geoID %in% gene_df$geoID)   
+
+# Check that no sample ID appears twice
+any(duplicated(covarFile$geoID))  
+
+# Join them by the sample ID
+df <- merge(covarFile, gene_df, by = "geoID")
+
+# Check the result
+nrow(df)                   
+sum(is.na(df$expression)) 
+head(df)
+```
+
+
+```{r}
 
 ```
