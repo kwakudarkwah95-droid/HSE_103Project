@@ -76,6 +76,7 @@ gene_df <- data.frame(
   expression = as.numeric(unlist(ExpressionFile[my_probe, ]))
 )
 
+
 # Check the result
 head(gene_df)
 nrow(gene_df)
@@ -91,6 +92,10 @@ any(duplicated(covarFile$geoID))
 # Join them by the sample ID
 df <- merge(covarFile, gene_df, by = "geoID")
 
+# spot check if data matches
+df$expression[df$geoID == "GSM2264363"]
+ExpressionFile[my_probe, "GSM2264363"]
+
 # Check the result
 nrow(df)                   
 sum(is.na(df$expression)) 
@@ -99,5 +104,34 @@ head(df)
 
 
 ```{r}
+#Plot histogram with ggplot
+ggplot(df, aes(x = expression)) +
+  geom_histogram(bins = 20, fill = "steelblue", color = "white") +
+  labs(x = "RRAGD expression (log2 intensity)",
+       y = "Number of samples",
+       title = "Distribution of RRAGD expression") +
+  theme_classic(base_size = 14)
+```
+```{r}
+#Plot  scatterplot with ggplot
+ggplot(df, aes(x = mat_BMI, y = expression)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", color = "orange") +
+  labs(x = "Maternal BMI (kg/m^2)",
+       y = "RRAGD expression (log2 intensity)",
+       title='RRAGD Expression and Maternal BMI') +
+  theme_classic(base_size = 14)
 
+#Correlation coefficient
+cor(df$mat_BMI, df$expression)
+
+```
+```{r}
+#Plot  boxplot by both categorical variables(Vitamin D status and Pregnancy Outcome)
+ggplot(df, aes(x = preg_preeclampsia, y = expression, fill = vitD_status)) +
+  geom_boxplot() +
+  labs(x = "Pregnancy outcome",
+       y = "RRAGD expression (log2 intensity)",
+       fill = "Vitamin D status") +
+  theme_classic(base_size = 14)
 ```
