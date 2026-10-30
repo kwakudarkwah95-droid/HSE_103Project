@@ -5,6 +5,7 @@ output:
   html_document: default
 date: "2026-10-22"
 ---
+Collaborators: Claude for generating histogram function.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -82,6 +83,8 @@ gene_df <- data.frame(
 # Check the result
 head(gene_df)
 nrow(gene_df)
+
+
 ```
 ```{r}
 #Combine gene and covariates
@@ -107,8 +110,7 @@ matching_table <- data.frame(
   RRAGD = df$expression
 )
 
-# Print the first six rows
-knitr::kable(head(matching_table), digits = 4, row.names = FALSE)
+
 # Check the result
 nrow(df)                   
 sum(is.na(df$expression)) 
@@ -139,8 +141,7 @@ expression_summary <- data.frame(
   Max = max(expression_values)
 )
 
-# Display a formatted table
-knitr::kable(expression_summary, digits = 3)
+
 ```
 ```{r}
 #Plot  scatterplot with ggplot
@@ -164,4 +165,111 @@ ggplot(df, aes(x = preg_preeclampsia, y = expression, fill = vitD_status)) +
        y = "RRAGD expression (log2 intensity)",
        fill = "Vitamin D status") +
   theme_classic(base_size = 14)
+```
+
+**SUBMISSION 2**
+
+```{r}
+
+#build one data frame with all 3 genes
+# List of genes to analyse
+genes_of_interest <- c("RRAGD", "ATG101", "PCSK7")
+
+# Start with the cleaned covariates (including vitD_status)
+df <- covarFile
+
+# For each gene: find its probe, extract its expression, and add it as a new column
+for (g in genes_of_interest) {
+
+  # Find the probe ID for this gene
+  probe <- as.character(GeneNames$PROBEID[GeneNames$GENE == g])
+
+  # Pull out that probe's expression values for every sample
+  gene_df <- data.frame(
+    geoID = colnames(ExpressionFile),
+    value = as.numeric(unlist(ExpressionFile[probe, ]))
+  )
+
+  # Name the column after the gene
+  names(gene_df)[2] <- g
+
+  # Join to the main data frame by sample ID
+  df <- merge(df, gene_df, by = "geoID")
+}
+df
+```
+
+```{r}
+#function for the histograms
+make_plot_histogram <- function(data, gene, cont_var, cat_var1, cat_var2) {
+
+  # Copy the chosen gene into a column called "expression"
+  data$expression <- data[[gene]]
+
+  #histogram
+  p1 <- ggplot(data, aes(x = expression)) +
+    geom_histogram(bins = 20, fill = "steelblue", color = "white") +
+    labs(x = paste(gene, "expression (log2 intensity)"),
+         y = "Number of samples") +
+    theme_classic(base_size = 14)
+
+  print(p1)
+}
+#run a loop through the genes of interest
+for (g in genes_of_interest){
+  make_plot_histogram(df, g , "mat_BMI", "preg_preeclampsia", "vitD_status")
+}
+
+```
+
+```{r}
+#function for the scatterplot
+make_plot_scatter <- function(data, gene, cont_var, cat_var1, cat_var2) {
+
+  # Copy the chosen gene into a column called "expression"
+  data$expression <- data[[gene]]
+  data$cont       <- data[[cont_var]]
+  data$cat1       <- data[[cat_var1]]
+  data$cat2       <- data[[cat_var2]]
+  
+ #scatterplot
+  p2 <- ggplot(data, aes(x = cont, y = expression)) +
+    geom_point(alpha = 0.6) +
+    geom_smooth(method = "lm", color = "orange") +
+    labs(x = "Maternal BMI (kg/m^2)",
+         y = paste(gene, "expression (log2 intensity)")) +
+    theme_classic(base_size = 14)
+
+print(p2)}
+
+#run a loop through the genes of interest
+for (g in genes_of_interest){
+  make_plot_scatter(df, g , "mat_BMI", "preg_preeclampsia", "vitD_status")}
+```
+```{r}
+#function for the boxplot
+make_plot_boxplot <- function(data, gene, cont_var, cat_var1, cat_var2) {
+
+  # Copy the chosen gene into a column called "expression"
+  data$expression <- data[[gene]]
+  data$cont       <- data[[cont_var]]
+  data$cat1       <- data[[cat_var1]]
+  data$cat2       <- data[[cat_var2]]
+  
+
+
+#boxplot by both categorical variables
+  p3 <- ggplot(data, aes(x = cat1, y = expression, fill = cat2)) +
+    geom_boxplot() +
+    labs(x = cat_var1,
+         y = paste(gene, "expression (log2 intensity)"),
+         fill = cat_var2) +
+    theme_classic(base_size = 14)
+  
+  print(p3)
+}
+#run a loop through the genes of interest
+for (g in genes_of_interest){
+  make_plot_boxplot(df, g , "mat_BMI", "preg_preeclampsia", "vitD_status")}
+  
 ```
