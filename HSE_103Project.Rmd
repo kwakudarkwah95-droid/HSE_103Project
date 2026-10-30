@@ -196,7 +196,7 @@ for (g in genes_of_interest) {
   # Join to the main data frame by sample ID
   df <- merge(df, gene_df, by = "geoID")
 }
-df
+head(df)
 ```
 
 ```{r}
