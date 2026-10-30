@@ -206,11 +206,12 @@ make_plot_histogram <- function(data, gene, cont_var, cat_var1, cat_var2) {
   # Copy the chosen gene into a column called "expression"
   data$expression <- data[[gene]]
 
-  #histogram
+  #histogram with code for all genes
   p1 <- ggplot(data, aes(x = expression)) +
     geom_histogram(bins = 20, fill = "steelblue", color = "white") +
     labs(x = paste(gene, "expression (log2 intensity)"),
-         y = "Number of samples") +
+         y = "Number of samples",
+          title = paste("Distribution of ",gene," expression")) +
     theme_classic(base_size = 14)
 
   print(p1)
@@ -237,7 +238,8 @@ make_plot_scatter <- function(data, gene, cont_var, cat_var1, cat_var2) {
     geom_point(alpha = 0.6) +
     geom_smooth(method = "lm", color = "orange") +
     labs(x = "Maternal BMI (kg/m^2)",
-         y = paste(gene, "expression (log2 intensity)")) +
+         y = paste(gene, "expression (log2 intensity)"),
+          title = paste(gene," Expression and Maternal BMI")) +
     theme_classic(base_size = 14)
 
 print(p2)}
