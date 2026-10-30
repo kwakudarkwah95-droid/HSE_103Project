@@ -1,6 +1,8 @@
 ---
 title: "HSE_103Project"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: "2026-10-22"
 ---
 
@@ -95,11 +97,23 @@ df <- merge(covarFile, gene_df, by = "geoID")
 # spot check if data matches
 df$expression[df$geoID == "GSM2264363"]
 ExpressionFile[my_probe, "GSM2264363"]
+# Find each participant's ID in the original expression file
+matched_index <- match(df$geoID, colnames(ExpressionFile))
 
+# Display both IDs and the matched expression value
+matching_table <- data.frame(
+  Covariate_ID = df$geoID,
+  Expression_ID = colnames(ExpressionFile)[matched_index],
+  RRAGD = df$expression
+)
+
+# Print the first six rows
+knitr::kable(head(matching_table), digits = 4, row.names = FALSE)
 # Check the result
 nrow(df)                   
 sum(is.na(df$expression)) 
 head(df)
+
 ```
 
 
@@ -111,6 +125,22 @@ ggplot(df, aes(x = expression)) +
        y = "Number of samples",
        title = "Distribution of RRAGD expression") +
   theme_classic(base_size = 14)
+
+# Keep nonmissing expression values
+expression_values <- df$expression[!is.na(df$expression)]
+
+# Summarize the histogram numerically
+expression_summary <- data.frame(
+  N = length(expression_values),
+  Mean = mean(expression_values),
+  SD = sd(expression_values),
+  Median = median(expression_values),
+  Min = min(expression_values),
+  Max = max(expression_values)
+)
+
+# Display a formatted table
+knitr::kable(expression_summary, digits = 3)
 ```
 ```{r}
 #Plot  scatterplot with ggplot
