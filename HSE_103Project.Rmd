@@ -209,9 +209,9 @@ make_plot_histogram <- function(data, gene, cont_var, cat_var1, cat_var2) {
   #histogram with code for all genes
   p1 <- ggplot(data, aes(x = expression)) +
     geom_histogram(bins = 20, fill = "steelblue", color = "white") +
-    labs(x = paste(gene, "expression (log2 intensity)"),
+    labs(x = bquote(italic(.(gene)) ~ "expression (log2 intensity)"),
          y = "Number of samples",
-          title = paste("Distribution of ",gene," expression")) +
+         title = bquote("Distribution of" ~ italic(.(gene)) ~ "expression")) +
     theme_classic(base_size = 14)
 
   print(p1)
@@ -237,9 +237,9 @@ make_plot_scatter <- function(data, gene, cont_var, cat_var1, cat_var2) {
   p2 <- ggplot(data, aes(x = cont, y = expression)) +
     geom_point(alpha = 0.6) +
     geom_smooth(method = "lm", color = "orange") +
-    labs(x = "Maternal BMI (kg/m^2)",
-         y = paste(gene, "expression (log2 intensity)"),
-          title = paste(gene," Expression and Maternal BMI")) +
+    labs(x = expression("Maternal BMI" ~ (kg/m^2)),
+         y = bquote(italic(.(gene)) ~ "expression (log2 intensity)"),
+         title = bquote(italic(.(gene)) ~ "Expression and Maternal BMI")) +
     theme_classic(base_size = 14)
 
 print(p2)}
@@ -263,9 +263,9 @@ make_plot_boxplot <- function(data, gene, cont_var, cat_var1, cat_var2) {
 #boxplot by both categorical variables
   p3 <- ggplot(data, aes(x = cat1, y = expression, fill = cat2)) +
     geom_boxplot() +
-    labs(x = cat_var1,
-         y = paste(gene, "expression (log2 intensity)"),
-         fill = cat_var2) +
+    labs(x = "Pregnancy Outcome",
+         y = bquote(italic(.(gene)) ~ "expression (log2 intensity)"),
+         fill = "Vitamin D Status") +
     theme_classic(base_size = 14)
   
   print(p3)
@@ -275,3 +275,100 @@ for (g in genes_of_interest){
   make_plot_boxplot(df, g , "mat_BMI", "preg_preeclampsia", "vitD_status")}
   
 ```
+**FINAL SUBMISSION**
+
+
+```{r}
+#functions to format the summaries
+mean_sd <- function(x) sprintf("%.2f (%.2f)", mean(x, na.rm = TRUE), sd(x, na.rm = TRUE))
+n_pct   <- function(x) sprintf("%d (%.1f%%)", sum(x, na.rm = TRUE), 100 * mean(x, na.rm = TRUE))
+
+# Summary statistics by pregnancy outcome
+summary_table <- df %>% group_by(preg_preeclampsia) %>%
+  summarise(N = as.character(n()),
+    `Maternal BMI (kg/m²), mean (SD)`= mean_sd(mat_BMI),
+    `Maternal age (years), mean (SD)`= mean_sd(mat_age_yrs),
+    `Gestational age at delivery (weeks), mean (SD)` = mean_sd(delivery_gestAge_wks),
+    `Low vitamin D, n (%)`= n_pct(vitD_status == "Low"),
+    `Adequate vitamin D, n (%)`= n_pct(vitD_status == "Adequate")) %>%
+  
+  # Characteristics as rows, pregnancy outcomes as columns
+  pivot_longer(-preg_preeclampsia, names_to = "Characteristic") %>%
+  pivot_wider(names_from = preg_preeclampsia)
+
+summary_table
+
+```
+```{r}
+# Final histogram for RRAGD
+make_plot_histogram(df, "RRAGD", "mat_BMI", "preg_preeclampsia", "vitD_status")
+
+# Final scatterplot: RRAGD expression and maternal BMI
+make_plot_scatter(df, "RRAGD", "mat_BMI", "preg_preeclampsia", "vitD_status")
+
+# Final boxplot: RRAGD expression by pregnancy outcome and vitamin D status
+make_plot_boxplot(df, "RRAGD", "mat_BMI", "preg_preeclampsia", "vitD_status")
+
+```
+```{r}
+library(pheatmap)
+
+#10 genes: my 3 genes + 7 most variable genes in the dataset
+heatmap_genes <- c("RRAGD", "ATG101", "PCSK7",
+                   "UTS2", "RUNDC3A", "TMEM176B", "CEACAM6",
+                   "CLIC2", "SLC1A5", "TGM2")
+
+# Find each gene's probe ID (one probe per gene)
+probes <- as.character(GeneNames$PROBEID[match(heatmap_genes, GeneNames$GENE)])
+
+# Expression matrix: genes in rows, samples in the same order as df
+heatmap_matrix <- as.matrix(ExpressionFile[probes, df$geoID])
+rownames(heatmap_matrix) <- heatmap_genes
+
+# Tracking bars for the 2 categorical variables
+annotation_data <- data.frame(
+  `Pregnancy outcome` = df$preg_preeclampsia,
+  `Vitamin D status`  = df$vitD_status,
+  row.names = df$geoID, check.names = FALSE)
+
+annotation_colors <- list(
+  `Pregnancy outcome` = c(Normal = "#009E73", Preeclampsia = "#CC79A7"),
+  `Vitamin D status`  = c(Low = "#D55E00", Adequate = "#0072B2"))
+
+# Clustered heatmap (scale = "row" gives z scores for each gene)
+pheatmap(heatmap_matrix,
+         scale = "row",
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",
+         clustering_method = "complete",
+         annotation_col = annotation_data,
+         annotation_colors = annotation_colors,
+         color = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+         show_colnames = FALSE,
+         labels_row = as.expression(lapply(heatmap_genes, function(g) bquote(italic(.(g))))),
+         border_color = NA,
+         main = "Expression of 10 genes across samples (row z scores)")
+```
+```{r}
+library(UpSetR)
+
+#My upset genes
+upset_genes <- c("RRAGD", "ATG101", "PCSK7")
+
+# 1 = sample is above that gene's median expression, 0 = at or below
+upset_data <- as.data.frame(
+  lapply(df[upset_genes], function(x) as.integer(x > median(x))))
+
+# UpSet plot: how many samples are high for each combination of genes
+upset(upset_data,
+      sets = upset_genes,
+      keep.order = TRUE,
+      order.by = "freq",
+      mainbar.y.label = "Samples in exact combination",
+      sets.x.label = "Samples above gene median",
+      main.bar.color = "steelblue",
+      sets.bar.color = "#009E73",
+      text.scale = 1.3)
+```
+
+```{r}
